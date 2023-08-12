@@ -1,0 +1,13 @@
+/CompanyData*
+/IndividualStock
+/TestData
+/TestPy
+CalucEarn.py
+Concat.py
+Concat715.csv
+df_all.csv
+df_earn.csv
+df_maxearn.csv
+/NASDAQ_Trade/__pycache__
+/NASDAQ_Trade/graph.py
+/NASDAQ_Trade/test.py
