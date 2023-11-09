@@ -11,8 +11,20 @@ import pandas as pd
 import numpy as np
 import re
 import requests
+import mplfinance as mpf
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
 # from selenium.webdriver.chrome.service import Service
+import json
+from logging import getLogger, config
+import seaborn as sns
 
+
+# loggerの設定
+with open(os.getcwd()+'/log_config.json', 'r') as f:
+    log_conf = json.load(f)
+config.dictConfig(log_conf)
+logger = getLogger(__name__)
 
 
 """
@@ -28,9 +40,11 @@ def NasdaqHistDownload():
     try:
         p = glob.glob(os.getcwd() + r"/NASDAQ_Trade/NASDAQData*", recursive=True)[0]
         shutil.rmtree(p)
+        logger.info(f"remove {p}")
     except:
         pass
     os.mkdir(downloadDir)
+    logger.info(f"mkdir {downloadDir}")
 
     # データ期間の指定（st:開始、ed:終了）
     st = datetime.date(1970, 1, 1)
@@ -47,8 +61,11 @@ def NasdaqHistDownload():
     options.add_argument('--ignore-ssl-errors')
     options.add_argument('--headless')
     options.add_experimental_option("prefs", {"download.default_directory": downloadDir })
-    chrome_service = fs.Service(executable_path=chromedriver)
-    driver = webdriver.Chrome(service=chrome_service, chrome_options=options)
+
+    try:
+        driver = webdriver.Chrome(chromedriver, chrome_options=options)
+    except Exception as e:
+        logger.error(f"driver's exception \n{e}")
 
     # headlessモードでファイルをダウンロードする際の追加設定
     driver.command_executor._commands["send_command"] = (
@@ -72,6 +89,7 @@ def NasdaqHistDownload():
     driver.get(url)
     #5秒間の一時停止
     time.sleep(5)
+    logger.info(f"Donwload NASDAQ HistData (NasdaqHistDownload)")
 
 
 """
@@ -79,7 +97,10 @@ CSVデータに情報を加える
 """
 def ProcessNASDAQ():
     # 各企業のヒストリカルデータを読み込む
-    file = glob.glob(os.getcwd() + f"/NASDAQ_Trade/NASDAQData*/^IXIC.csv", recursive=True)[0]
+    try:
+        file = glob.glob(os.getcwd() + f"/NASDAQ_Trade/NASDAQData*/^IXIC.csv", recursive=True)[0]
+    except Exception as e:
+        logger.error(f"Not Exitst ^IXIC.csv \n{e}")
 
     # 入力CSV
     df = pd.read_csv(file)
@@ -204,6 +225,158 @@ def ProcessNASDAQ():
         df[['Earn', 'TotalEarn']] = float(0)
 
     df.to_csv(file, index=False)
+    logger.info(f"Complete {file} (ProcessNASDAQ)")
+
+
+"""
+Lineに送信する画像の生成
+"""
+def PlotImage():
+    # チャートの保存先
+    save_dir_chart = glob.glob(os.getcwd() + r"/NASDAQ_Trade/NASDAQData*", recursive=True)[0] + '/^IXIC_chart'
+    # テーブルの保存先
+    save_dir_table = glob.glob(os.getcwd() + r"/NASDAQ_Trade/NASDAQData*", recursive=True)[0] + '/^IXIC_table'
+    # チャートとテーブルの結合画像の保存先
+    save_dir_combine = glob.glob(os.getcwd() + r"/NASDAQ_Trade/NASDAQData*", recursive=True)[0] + '/^IXIC.jpg'
+
+    # dfの設定
+    try:
+        file = glob.glob(os.getcwd() + "/NASDAQ_Trade/NASDAQData*/^IXIC.csv", recursive=True)[0]
+    except Exception as e:
+        logger.error(f"Not Exitst ^IXIC.csv \n{e}")
+    df_chart = pd.read_csv(file)
+    df_table = pd.read_csv(file)[-11:] # 表示は5日間だが、前日の値を参照するので最新6日間を引用する
+
+    # チャート列の整形
+    df_chart['Date'] = df_chart['Date'].astype('datetime64')
+    df_chart = df_chart.set_index('Date')
+    df_chart['Close'] = df_chart['Adj Close']
+    df_chart_plot = df_chart[['Open', 'High', 'Low', 'Close', 'Volume']][-50:]
+
+    # 追加するSMAの定義
+    adds=[]
+    adds.append(mpf.make_addplot(df_chart['SMA50'][-50:], color='g', width=1.5, alpha=0.5))
+    adds.append(mpf.make_addplot(df_chart['SMA150'][-50:], color='y', width=1.5, alpha=0.5))
+    adds.append(mpf.make_addplot(df_chart['SMA200'][-50:], color='r', width=1.5, alpha=0.5))
+
+    # チャートの描画
+    mpf.plot(
+        df_chart_plot,
+        type='candle',
+        style='yahoo',
+        figsize=(13.5, 10),
+        tight_layout=True,
+        ylim=((df_chart_plot['Close'].min()*0.9, df_chart_plot['Close'].max()*1.05)),
+        datetime_format='%m/%d',
+        addplot=adds,
+        volume=True,
+        title='NASDAQ(^IXIC)',
+        savefig=save_dir_chart,
+    )
+
+    # テーブル列の整形
+    df_table['Performance'] = ((df_table['Adj Close'] / df_table['Adj Close'].shift(1) -1) * 100).round(2)  # 前日の値と比較した列を作成
+    df_table['U/D'] = df_table['U/D'].round(2) # 少数第二位までを表示する
+    df_table['Adj Close'] = df_table['Adj Close'].round(2) # 少数第二位までを表示する
+    df_table['Volume'] = df_table['Volume'].map('{:.2e}'.format) # 出来高列を指数表記する
+    df_table = df_table[['Date', 'Adj Close', 'Performance', 'Volume', 'U/D', 'Total']][-10:]
+    df_table = df_table.sort_values('Date', ascending=False)
+
+
+    # テーブルの生成
+    fig, ax = plt.subplots(figsize=(13, 12), dpi=100)
+    ax.axis('off')
+    ax.axis('tight')
+    table = ax.table(cellText=df_table.values,
+                    bbox=[0, 0, 1, 1])
+
+    # 表のセルの背景色を透明にする
+    for key, cell in table._cells.items():
+        cell.set_alpha(0)
+
+    # テキストを中央揃えにする
+    for key, cell in table._cells.items():
+        cell.set_text_props(ha='center', va='center', fontsize=60)
+
+    table.set_fontsize(60)
+    plt.savefig(save_dir_table, transparent=True)  # 透明な背景で保存
+
+
+    """
+    ヒートマップの作成
+    """
+    out_path = os.path.join(glob.glob(os.getcwd() + r"/NASDAQ_Trade/NASDAQData*", recursive=True)[0], 'heatmap.png')
+
+    # データの作成
+    data = [
+        [df_table['Performance'].iloc[-10]],
+        [df_table['Performance'].iloc[-9]],
+        [df_table['Performance'].iloc[-8]],
+        [df_table['Performance'].iloc[-7]],
+        [df_table['Performance'].iloc[-6]],
+        [df_table['Performance'].iloc[-5]],
+        [df_table['Performance'].iloc[-4]],
+        [df_table['Performance'].iloc[-3]],
+        [df_table['Performance'].iloc[-2]],
+        [df_table['Performance'].iloc[-1]],
+    ]
+
+    heatmap_df = pd.DataFrame(data=data)
+
+    plt.figure(figsize=(13, 12))
+    plt.axis("off")
+    sns.heatmap(heatmap_df, cmap='RdYlGn', vmin=-3, vmax=3, cbar=False)
+    # ヒートマップ画像の保存
+    plt.savefig(out_path)
+
+
+    """
+    ヒートマップ画像とテーブル画像の結合
+    """
+    base_path = glob.glob(os.getcwd()+f"/NASDAQ_Trade/NASDAQData*/heatmap.png", recursive=True)[0] # ベース画像
+    logo_path = glob.glob(os.getcwd()+f"/NASDAQ_Trade/NASDAQData*/^IXIC_table.png", recursive=True)[0] # 重ねる透過画像
+
+    base = Image.open(base_path)
+    logo = Image.open(logo_path)
+
+    base.paste(logo, (0, 0), logo)
+    base.save(out_path)
+
+
+    """
+    列名を追加する
+    """
+    # 画像を開く
+    image = Image.open(glob.glob(os.getcwd()+"/NASDAQ_Trade/NASDAQData*/heatmap.png", recursive=True)[0])
+    # 画像にテキストを挿入するためのImageDrawオブジェクトを作成
+    draw = ImageDraw.Draw(image)
+    # テキストを挿入する位置と内容を指定
+    text = "Date          Adj Close  Performance  Volume         U/D            Total"
+    position = (180, 80)  # テキストを挿入する位置 (x, y)
+    # テキストのフォントとサイズを指定
+    font_size = 32
+    font = ImageFont.truetype(os.getcwd()+"/Arial Unicode.ttf", font_size)
+    # テキストを画像に挿入
+    draw.text(position, text, fill="black", font=font)
+
+    # 画像を保存
+    image.save(out_path)
+
+    # チャート画像とヒートマップ画像の結合
+    im1_dir = glob.glob(os.getcwd()+f"/NASDAQ_Trade/NASDAQData*/^IXIC_chart.png", recursive=True)[0]  # チャート画像
+    im2_dir = glob.glob(os.getcwd()+f"/NASDAQ_Trade/NASDAQData*/heatmap.png", recursive=True)[0]  # ヒートマップ画像
+
+    im1 = Image.open(im1_dir)
+    im2 = Image.open(im2_dir)
+
+    def get_concat(im1, im2):
+        dst = Image.new('RGB', (im1.width, im1.height + im2.height))
+        dst.paste(im1, (0, 0))
+        dst.paste(im2, (0, im1.height))
+        return dst
+
+    get_concat(im1, im2).save(save_dir_combine)
+    logger.info(f"Complete {save_dir_combine} (PlotImage)")
 
 
 """
@@ -215,8 +388,17 @@ access_token = os.getenv('LINE_NOTIFY')
 
 def LineNotify():
     # 入力CSV
-    file = glob.glob(os.getcwd() + "/NASDAQ_Trade/NASDAQData*/^IXIC.csv", recursive=True)[0]
+    try:
+        file = glob.glob(os.getcwd() + "/NASDAQ_Trade/NASDAQData*/^IXIC.csv", recursive=True)[0]
+    except Exception as e:
+        logger.error(f"Not Exitst ^IXIC.csv \n{e}")
     df = pd.read_csv(file)
+    # 入力画像
+    try:
+        image_dir = glob.glob(os.getcwd() + "/NASDAQ_Trade/NASDAQData*/^IXIC.jpg", recursive=True)[0]
+    except Exception as e:
+        logger.error(f"Not Exitst ^IXIC.jpg \n{e}")
+    image = {'imageFile': open(image_dir, 'rb')}
     # 最新日の買いフラグと売りフラグを変数に設定
     today_df = df.iloc[-1][['Date', 'BuyingFlg', 'SelledFlg']]
     today = today_df['Date']
@@ -234,6 +416,6 @@ def LineNotify():
     send_data = {"message": message}
 
     #メッセージを送信
-    result = requests.post(url, headers=headers, data=send_data)
+    result = requests.post(url, headers=headers, data=send_data, files=image)
 
-    print(message)
+    logger.info(f"Send Line Message (LineNotify)\n{message}")
