@@ -1,5 +1,4 @@
 /CompanyData*
-/Stock_Trade
 /TestData
 /TestPy
 CalucEarn.py
@@ -12,3 +11,5 @@ df_maxearn.csv
 /NASDAQ_Trade/graph.py
 /NASDAQ_Trade/test.py
 .png
+/Stock_Trade/StockData*
+/Stock_Trade/*.csv
