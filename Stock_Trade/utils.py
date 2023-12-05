@@ -39,9 +39,9 @@ finvizから銘柄の配列を取得
 def PickFinviz():
     # URL
     # url = "https://finviz.com/screener.ashx?v=152&f=cap_smallover,exch_nasd&o=-marketcap&c=0,1,2,3,4,6,7,8,26,68,67,65&r="
-    url = "https://finviz.com/screener.ashx?v=152&f=cap_smallover,geo_usa&o=-marketcap&c=0,1,2,3,4,6,7,8,26,68,67,65&r="
+    # url = "https://finviz.com/screener.ashx?v=152&f=cap_smallover,geo_usa&o=-marketcap&c=0,1,2,3,4,6,7,8,26,68,67,65&r="
+    url = "https://finviz.com/screener.ashx?v=151&f=cap_smallover,geo_usa,ind_stocksonly&o=-marketcap&t=&c=0,1,2,3,4,6,7,8,26,68,67,65&r="
     # ページ数(num*20銘柄)
-    # num = 1
     num = 50
     # ファイル名
     out_path = os.path.join(glob.glob(os.getcwd()+"/Stock_Trade/StockData*", recursive=True)[0], "input.txt")
@@ -243,11 +243,14 @@ def ProcessHistData():
 
     # 各企業のヒストリカルデータを読み込む
     cnt=0
-    files = glob.glob(os.getcwd() + "/Stock_Trade/StockData*/*.csv", recursive=True)
-    files.remove(IXICdir) # IXICのファイルを除く
+    files = glob.glob(os.getcwd() + "/Stock_Trade/StockData*/*.csv", recursive=True)[:10]
+    # files.remove(IXICdir) # IXICのファイルを除く
     # Comprehensiveのファイルを除く
-    compdir = glob.glob(os.getcwd() + f"/Stock_Trade/StockData*/Comprehensive.csv", recursive=True)[0]
-    files.remove(compdir)
+    try:
+        compdir = glob.glob(os.getcwd() + f"/Stock_Trade/StockData*/Comprehensive.csv", recursive=True)[0]
+        files.remove(compdir)
+    except:
+        pass
     mnum=len(files)
     for file in files:
         # 入力CSV
@@ -405,5 +408,6 @@ def ProcessHistData():
         df.to_csv(file, index=False)
         cnt+=1
         print(f"{s} {cnt}/{mnum} ",end="\r")
+        print(df)
 
     print(f"---Done Process ProcessHistData (ProcessHistData)---")

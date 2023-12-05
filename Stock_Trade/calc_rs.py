@@ -53,8 +53,11 @@ inputDir = os.path.join(glob.glob(os.getcwd()+"/Stock_Trade/StockData*")[0], "in
 stock_dir  = glob.glob(os.getcwd()+"/Stock_Trade/StockData*/*.csv", recursive=True)
 IXICdir = glob.glob(os.getcwd() + f"/Stock_Trade/StockData*/^IXIC.csv", recursive=True)[0] # IXICのファイルを除く
 stock_dir.remove(IXICdir)
-compdir = glob.glob(os.getcwd() + f"/Stock_Trade/StockData*/Comprehensive.csv", recursive=True)[0] # Comprehensiveのファイルを除く
-stock_dir.remove(compdir)
+try:
+    compdir = glob.glob(os.getcwd() + f"/Stock_Trade/StockData*/Comprehensive.csv", recursive=True)[0] # Comprehensiveのファイルを除く
+    stock_dir.remove(compdir)
+except:
+    pass
 # 出力先のディレクトリ
 outputDir = os.path.join(glob.glob(os.getcwd()+"/Stock_Trade")[0], "Comprehensive.csv")
 

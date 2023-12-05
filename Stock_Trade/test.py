@@ -28,8 +28,12 @@ def get_inst_perf(i, ticker, max_num):
         tmp_ticker = ticker + " " # 銘柄の検索に空白が必要なので一時的に空白を追加
         xpath_expression = f"//td[text()='{tmp_ticker}']/preceding-sibling::td/a"
         try:
-            driver.find_element(By.XPATH, xpath_expression).click()
+            ticker_btn = driver.find_element(By.XPATH, xpath_expression)
+            driver.implicitly_wait(1.5)
+            ticker_btn.click()
+            # print("\n clicked")
         except Exception as e:
+            print(f"{ticker} company except")
             # 該当銘柄の企業名で再度検索する
             driver.get("https://whalewisdom.com")
             input_search = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/div/div[1]/div/header/div/div[2]/div[1]/div[2]/div/div/div/div[2]/input[1]")
@@ -38,7 +42,7 @@ def get_inst_perf(i, ticker, max_num):
             input_search.send_keys(company)
             input_search.send_keys(Keys.ENTER) # エンターキーを押下
             driver.find_element(By.XPATH, xpath_expression).click()
-            print("Get By Company")
+            print(f"{ticker} Get By Company")
         # ページソースを収録
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, "html.parser")
@@ -84,7 +88,7 @@ start = time.time()
 # 銘柄のリストを読み込む
 input_df = pd.read_csv(os.getcwd()+"/Stock_Trade/Comprehensive.csv")
 input_df_ticker = input_df["Ticker"]
-input_df_ticker = random.sample(input_df_ticker.tolist(), 10)
+# input_df_ticker = random.sample(input_df_ticker.tolist(), 30)
 # リスト型のデータ変数
 data = []
 error_data = []
@@ -126,6 +130,7 @@ sleep(5) # 待機時間
 
 # 現在のURLを取得
 cur_url = driver.current_url
+print(cur_url)
 # ログインに失敗した場合はperf_instをnanとしてdf出力する
 if cur_url == "https://whalewisdom.com/":
     print(f"----------------- Loggined -------------------")
@@ -141,16 +146,15 @@ if cur_url == "https://whalewisdom.com/":
     for i, ticker in enumerate(input_df_ticker):
         get_inst_perf(i, ticker, max_num)
 
-    sleep(15) # 待機時間
-    add_error_flg = False
-
     if len(error_data) != 0:
+        sleep(15) # 待機時間
+        add_error_flg = False
         print(error_data)
+        # errorになった銘柄のデータを再度取得する
+        max_num = len(error_data)
+        for i, ticker in enumerate(error_data):
+            get_inst_perf(i, ticker, max_num)
 
-    # errorになった銘柄のデータを再度取得する
-    max_num = len(error_data)
-    for i, ticker in enumerate(error_data):
-        get_inst_perf(i, ticker, max_num)
 else:
     print(f"----------------- Loggined False -------------------")
     # ログインエラーの際はすべての銘柄をnanとしてdfを出力する
@@ -158,7 +162,7 @@ else:
         ticker_list = input_df_ticker.to_list()
     except:
         ticker_list = input_df_ticker
-    data = [[ticker, np.nan] for ticker in ticker_list]
+    data = [[ticker, np.nan, np.nan] for ticker in ticker_list]
 
 # Chrome driverを終了する
 driver.close()
@@ -174,14 +178,18 @@ df.to_csv(outputDir, index=False)
 
 print(f"Time : {round(time.time() - start, 2)}")
 
-# ! Chromeドライバーを入れ直してみる
+# ! beautifulsoupでほしい値とずれているところを取得しているので訂正する必要がある
 
-# ! gitに上げる
+# ! 実行時間計測のためにCloudFuncitonに上げる
+
+# ! Chromeドライバーを入れ直してみる
 
 # 見つかるが値がないもの
 # OXLC
 # SLRN
 # SFWL
+# BKR
+# CSQ(ETF)
 
 # 本当に見つからなかったもの
 # AY
@@ -191,6 +199,7 @@ print(f"Time : {round(time.time() - start, 2)}")
 # CART
 # ARM
 # CHY(ETF)
+# LLYVK
 
 # 会社名で見つかったもの
 # EVRG Evergy Inc
@@ -198,3 +207,28 @@ print(f"Time : {round(time.time() - start, 2)}")
 # Z Zillow Group Inc
 # GO Grocery Outlet Holding Corp
 # BKR Baker Hughes Company
+
+# 全銘柄回して値の取得ができなかったもの
+# FOX
+# EVRG
+# TIGO
+# SBCF
+# ODD
+# NMRA
+# FRME
+# CD
+# ENLT
+# SGH
+# RYZB
+# AHCO
+# NMRK
+# NWGL
+# GDYN
+# ARKO
+# OCFC
+
+# Falseとなったもの
+# OSIS	14.81%	False
+    # 検索可能、Tickerの違いはなし、値がちがう。ので再度こちらの銘柄のみを実行する必要がある
+# SCRM	1.06%	False
+    # 検索可能、Tickerの違いはなし、値がちがう。ので再度こちらの銘柄のみを実行する必要がある
