@@ -107,6 +107,8 @@ def ProcessNASDAQ():
     s = re.sub(r"/NASDAQ_Trade/NASDAQData[0-9]{6}/|.csv", "", file)
 
     # 追加する列
+    # 10日移動平均線
+    df['SMA10'] = df['Adj Close'].rolling(10).mean()
     # 50日移動平均線
     df['SMA50'] = df['Adj Close'].rolling(50).mean()
     # 150日移動平均線
@@ -255,9 +257,11 @@ def PlotImage():
 
     # 追加するSMAの定義
     adds=[]
+    adds.append(mpf.make_addplot(df_chart['SMA10'][-50:], color='gray', width=1.5, alpha=0.5))
     adds.append(mpf.make_addplot(df_chart['SMA50'][-50:], color='g', width=1.5, alpha=0.5))
     adds.append(mpf.make_addplot(df_chart['SMA150'][-50:], color='y', width=1.5, alpha=0.5))
     adds.append(mpf.make_addplot(df_chart['SMA200'][-50:], color='r', width=1.5, alpha=0.5))
+    legend = ["SMA10", "SMA50", "SMA150", "SMA200"]
 
     # チャートの描画
     mpf.plot(
@@ -266,7 +270,7 @@ def PlotImage():
         style='yahoo',
         figsize=(13.5, 10),
         tight_layout=True,
-        ylim=((df_chart_plot['Close'].min()*0.9, df_chart_plot['Close'].max()*1.05)),
+        ylim=((df_chart_plot['Close'].min()*1.0, df_chart_plot['Close'].max()*1.05)),
         datetime_format='%m/%d',
         addplot=adds,
         volume=True,

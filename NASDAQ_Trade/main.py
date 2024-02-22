@@ -2,9 +2,9 @@ from utils import NasdaqHistDownload, ProcessNASDAQ, PlotImage, LineNotify
 
 
 # # NASDAQのヒストリカルデータをダウンロード
-NasdaqHistDownload()
+# NasdaqHistDownload()
 # # CSVデータに情報を加える
-ProcessNASDAQ()
+# ProcessNASDAQ()
 # Lineに送信する画像の生成
 PlotImage()
 # # 売買フラグが立った際にLINEで通知する
