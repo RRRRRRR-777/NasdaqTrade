@@ -13,3 +13,19 @@ df_maxearn.csv
 .png
 /Stock_Trade/StockData*
 /Stock_Trade/*.csv
+
+# python generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.lock
+
+# venv
+.venv
+
+.DS_Store
+trash
+test*.py
