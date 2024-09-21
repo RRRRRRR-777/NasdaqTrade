@@ -4,10 +4,14 @@ import os
 
 def main_process(data, context):
     # NASDAQのヒストリカルデータをダウンロード
-    NasdaqHistDownload()
+    data = NasdaqHistDownload()
     # CSVデータに情報を加える
-    ProcessNASDAQ()
+    ProcessNASDAQ(data)
     # Lineに送信する画像の生成
     PlotImage()
     # 売買フラグが立った際にLINEで通知する
     LineNotify()
+
+
+if __name__ == "__main__":
+    main_process()
