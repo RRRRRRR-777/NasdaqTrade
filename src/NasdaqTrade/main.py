@@ -1,8 +1,6 @@
-from utils import NasdaqHistDownload, ProcessNASDAQ, PlotImage, LineNotify
-import os
+from utils import LineNotify, NasdaqHistDownload, PlotImage, ProcessNASDAQ
 
-
-def main_process(data, context):
+if __name__ == "__main__":
     # NASDAQのヒストリカルデータをダウンロード
     data = NasdaqHistDownload()
     # CSVデータに情報を加える
@@ -11,7 +9,3 @@ def main_process(data, context):
     PlotImage()
     # 売買フラグが立った際にLINEで通知する
     LineNotify()
-
-
-if __name__ == "__main__":
-    main_process()
