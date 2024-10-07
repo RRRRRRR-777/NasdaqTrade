@@ -2,10 +2,7 @@ import datetime
 import glob
 import json
 import os
-import re
 import shutil
-import subprocess
-import time
 from logging import config, getLogger
 
 import matplotlib.pyplot as plt
@@ -24,7 +21,7 @@ loggerの初期設定
 # loggerの設定
 logPath = '/log_config.json'
 replaceLogPath = '/tmp' + logPath
-# shutil.copyfile(os.getcwd() + logPath, replaceLogPath)
+shutil.copyfile(os.getcwd() + logPath, replaceLogPath)
 with open('/tmp/log_config.json', 'r') as f:
     log_conf = json.load(f)
 config.dictConfig(log_conf)
@@ -186,12 +183,11 @@ def ProcessNASDAQ(data):
     except:
         df[['Earn', 'TotalEarn']] = float(0)
 
+    # 保存ディレクトリの削除
+    shutil.rmtree(r"./tmp")
+    # ディレクトリの作成（既に存在する場合はエラーを避ける）
     today = datetime.datetime.today().strftime("%Y%m%d")
     dir_path = f"./tmp/NASDAQData{today}"
-
-    # 保存ディレクトリの削除
-    shutil.rmtree(dir_path)
-    # ディレクトリの作成（既に存在する場合はエラーを避ける）
     os.makedirs(dir_path, exist_ok=True)
     # ファイルパスの生成
     nasdaq_csv_path = os.path.join(glob.glob(os.path.join(
@@ -337,7 +333,7 @@ def PlotImage():
     position = (180, 80)  # テキストを挿入する位置 (x, y)
     # テキストのフォントとサイズを指定
     font_size = 32
-    font = ImageFont.truetype("/workspace/Arial Unicode.ttf", font_size)
+    font = ImageFont.truetype("./ArialUnicode.ttf", font_size)
 
     # テキストを画像に挿入
     draw.text(position, text, fill="black", font=font)
