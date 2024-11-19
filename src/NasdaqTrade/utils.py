@@ -48,7 +48,10 @@ CSVデータに情報を加える
 def ProcessNASDAQ(data):
     # 入力CSV
     df = pd.DataFrame(data).reset_index()
-
+    # マルチインデックスをシングルインデックスに変換
+    df.columns = df.columns.droplevel(1)
+    # Date列を日付部分だけに変換
+    df["Date"] = pd.to_datetime(df["Date"]).dt.date
     # 追加する列
     # 10日移動平均線
     df['SMA10'] = df['Adj Close'].rolling(10).mean()
