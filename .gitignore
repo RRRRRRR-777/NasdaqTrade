@@ -16,3 +16,4 @@ wheels/
 trash
 test*.py
 .vscode
+.env
