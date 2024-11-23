@@ -20,9 +20,9 @@ NASDAQのヒストリカルデータをダウンロード
 
 
 def NasdaqHistDownload():
-    ic("Start downloading NASDAQ historical data.")
+    print("Start downloading NASDAQ historical data.")
     data = yf.download("^IXIC", period="max")
-    ic("Download completed.")
+    print("Download completed.")
     return data
 
 
@@ -132,17 +132,20 @@ def ProcessNASDAQ(data):
             df_trade = df_trade.iloc[1:]
 
         # 利益率
-        df_trade['Earn'] = 0
+        df_trade['Earn'] = 0.0
         # df_trade.loc[df_trade['SelledFlg'] == 1, 'Earn'] = (df_trade['Adj Close'] / df_trade['Adj Close'].shift(1) - 1) * 100
-        df_trade.loc[df_trade['SelledFlg'] == 1,
-                     'Earn'] = df_trade['Adj Close'] / df_trade['Adj Close'].shift(1)
+
+        # 値を代入
+        df_trade.loc[df_trade['SelledFlg'] == 1, 'Earn'] = (
+            df_trade['Adj Close'] / df_trade['Adj Close'].shift(1)
+        ).astype(float)
 
         # 元のBuyingFlgとSelledFlgをすべて0にする
         df[['BuyingFlg', 'SelledFlg']] = 0
 
         # 利益率をdfに追加するために結合
         # 'Earn'列が複数結合されるのを防ぐため(本実装時には何度も当ファイルを実行されることが無いため当コードは不要と思う)
-        if not 'Earn' in df.columns:
+        if 'Earn' not in df.columns:
             # 入力CSVとdf_tradeのCSVを結合する
             df = pd.merge(df, df_trade[['Date', 'Earn']],
                           on='Date', how='outer').fillna(0)
@@ -157,19 +160,19 @@ def ProcessNASDAQ(data):
         # 総利益率
         df['TotalEarn'] = np.cumprod(df[df['Earn'] != 0]['Earn'])
         # 0の箇所を前の値で埋める
-        df['TotalEarn'] = df['TotalEarn'].fillna(method='pad')
+        df['TotalEarn'] = df['TotalEarn'].ffill()
         df = df.fillna(0)
 
         # 買い値
         df.loc[df['BuyingFlg'] == 1, 'BuyPrice'] = df['Adj Close']
         # 0の箇所を前の値で埋める
-        df = df.fillna(method='pad')
+        df = df.ffill()
 
         # 空白を0で埋める
         df = df.fillna(0)
 
     # 取引履歴がない場合Empty DataFrameエラーが発生するのでその場合は2つの列を追加する
-    except:
+    except:  # noqa: E722
         df[['Earn', 'TotalEarn']] = float(0)
 
     # 保存ディレクトリが存在するときのみ削除する
@@ -177,8 +180,8 @@ def ProcessNASDAQ(data):
         nasdaq_dir = glob.glob(
             os.getcwd()+'/tmp/NASDAQData*', recursive=True)[0]
         shutil.rmtree(nasdaq_dir)
-    except:
-        ic("保存ディレクトが存在しないので削除しませんでした。")
+    except:  # noqa: E722
+        print("保存ディレクトが存在しないので削除しませんでした。")
     # ディレクトリの作成（既に存在する場合はエラーを避ける）
     today = datetime.datetime.today().strftime("%Y%m%d")
     dir_path = f"./tmp/NASDAQData{today}"
@@ -187,7 +190,7 @@ def ProcessNASDAQ(data):
     nasdaq_csv_path = os.path.join(glob.glob(os.path.join(
         os.getcwd(), "tmp", "NASDAQData*"))[0], "^IXIC.csv")
     df.to_csv(nasdaq_csv_path, index=False)
-    ic(f"Complete {nasdaq_csv_path} (ProcessNASDAQ)")
+    print(f"Complete {nasdaq_csv_path} (ProcessNASDAQ)")
 
 
 """
@@ -350,7 +353,7 @@ def PlotImage():
         return dst
 
     get_concat(im1, im2).save(save_dir_combine)
-    ic(f"Complete {save_dir_combine} (PlotImage)")
+    print(f"Complete {save_dir_combine} (PlotImage)")
 
 
 """
@@ -364,14 +367,14 @@ def LineNotify():
         nasdaq_csv_path = os.path.join(glob.glob(os.path.join(
             os.getcwd(), "tmp", "NASDAQData*"))[0], "^IXIC.csv")
     except Exception as e:
-        ic(f"Not Exitst ^IXIC.csv \n{e}")
+        print(f"Not Exitst ^IXIC.csv \n{e}")
     df = pd.read_csv(nasdaq_csv_path)
     # 入力画像
     try:
         image_dir = glob.glob(os.path.join(
             os.getcwd(), "tmp", "NASDAQData*", "^IXIC.png"))[0]
     except Exception as e:
-        ic(f"Not Exitst ^IXIC.png \n{e}")
+        print(f"Not Exitst ^IXIC.png \n{e}")
     image = {'imageFile': open(image_dir, 'rb')}
     # 最新日の買いフラグと売りフラグを変数に設定
     today_df = df.iloc[-1][['Date', 'BuyingFlg', 'SelledFlg']]
@@ -396,4 +399,4 @@ def LineNotify():
     requests.post(LINE_NOTIFY_API, headers=headers,
                   data=send_data, files=image)
 
-    ic(f"Send Line Message (LineNotify)\n{message}")
+    print(f"Send Line Message (LineNotify)\n{message}")
