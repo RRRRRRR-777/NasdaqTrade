@@ -52,34 +52,34 @@ def ProcessNASDAQ(data):
 
     # 追加する列
     # 10日移動平均線
-    df['SMA10'] = df['Adj Close'].rolling(10).mean()
+    df['SMA10'] = df['Close'].rolling(10).mean()
     # 50日移動平均線
-    df['SMA50'] = df['Adj Close'].rolling(50).mean()
+    df['SMA50'] = df['Close'].rolling(50).mean()
     # 150日移動平均線
-    df['SMA150'] = df['Adj Close'].rolling(150).mean()
+    df['SMA150'] = df['Close'].rolling(150).mean()
     # 200日移動平均線
-    df['SMA200'] = df['Adj Close'].rolling(200).mean()
+    df['SMA200'] = df['Close'].rolling(200).mean()
     # 200日移動平均線の20日平均値
     df['SMA200 mean 20days'] = df['SMA200'].rolling(20).mean()
     # 200日移動平均線の20日前の値
     df['SMA200 befor 20days'] = df['SMA200'].shift(20)
     # 200日移動平均線と現在の株価のギャップ
-    df['SMA200 Gap'] = df['Adj Close'] / df['SMA200']
+    df['SMA200 Gap'] = df['Close'] / df['SMA200']
     # 52週最高値
     # min_periodsを使用して1つ以上のデータがあった場合の最大値を求める
-    df['52W High'] = df['Adj Close'].rolling(260, min_periods=1).max()
+    df['52W High'] = df['Close'].rolling(260, min_periods=1).max()
     # 52週最高値の25%以内
     df['52W High*0.75'] = df['52W High']*0.75
     # 52週最安値
     # min_periodsを使用して1つ以上のデータがあった場合の最小値を求める
-    df['52W Low'] = df['Adj Close'].rolling(260, min_periods=1).min()
+    df['52W Low'] = df['Close'].rolling(260, min_periods=1).min()
     # 52週最安値の30%以上
     df['52W Low*1.3'] = df['52W Low']*1.3
     # UpDownVolumeRatio 過去50営業日のうち株価が上昇した日の出来高を下落した日の出来高で割った数値
     # 前日と比較し株価が上昇していた日の出来高を'Up'
-    df['Up'] = df.loc[df['Adj Close'].diff() > 0, 'Volume']
+    df['Up'] = df.loc[df['Close'].diff() > 0, 'Volume']
     # 前日と比較し株価が下落していた日の出来高を'Down'に格納する
-    df['Down'] = df.loc[df['Adj Close'].diff() <= 0, 'Volume']
+    df['Down'] = df.loc[df['Close'].diff() <= 0, 'Volume']
     df = df.fillna(0)  # 欠損値を0で埋める
     df['U/D'] = df['Up'].rolling(50).sum() / df['Down'].rolling(50).sum()
 
@@ -87,8 +87,8 @@ def ProcessNASDAQ(data):
     df[['No1', 'No2', 'No3', 'No4', 'No5', 'No6', 'No7']] = 0
 
     # No1 現在の株価が150日と200日の移動平均線を上回っている。
-    df.loc[(df['Adj Close'] > df['SMA150']) & (
-        df['Adj Close'] > df['SMA200']), 'No1'] = int(1)
+    df.loc[(df['Close'] > df['SMA150']) & (
+        df['Close'] > df['SMA200']), 'No1'] = int(1)
     # No2 150日移動平均線は200日移動平均線を上回っている。
     df.loc[df['SMA150'] > df['SMA200'], 'No2'] = int(1)
     # No3 200日移動平均線は少なくとも1か月、上昇トレンドにある。
@@ -98,11 +98,11 @@ def ProcessNASDAQ(data):
     df.loc[(df['SMA50'] > df['SMA150']) & (
         df['SMA50'] > df['SMA200']), 'No4'] = int(1)
     # No5 現在の株価は50日移動平均線を上回っている。
-    df.loc[df['Adj Close'] > df['SMA50'], 'No5'] = int(1)
+    df.loc[df['Close'] > df['SMA50'], 'No5'] = int(1)
     # No6 現在の株価は52週安値よりも、少なくとも30％高い。
-    df.loc[df['Adj Close'] > df['52W Low*1.3'], 'No6'] = int(1)
+    df.loc[df['Close'] > df['52W Low*1.3'], 'No6'] = int(1)
     # No7 現在の株価は52週高値から少なくとも25％以内にある。
-    df.loc[df['Adj Close'] > df['52W High*0.75'], 'No7'] = int(1)
+    df.loc[df['Close'] > df['52W High*0.75'], 'No7'] = int(1)
     # No1~No7の合計値
     df['Total'] = df['No1'] + df['No2'] + df['No3'] + \
         df['No4'] + df['No5'] + df['No6'] + df['No7']
@@ -116,7 +116,7 @@ def ProcessNASDAQ(data):
     df.loc[df['Total'] <= 4, 'SellFlg1'] = int(1)
     # # 売り条件2
     df['SellFlg2'] = 0
-    df.loc[df['Adj Close'] < df['SMA150'], 'SellFlg2'] = int(1)
+    df.loc[df['Close'] < df['SMA150'], 'SellFlg2'] = int(1)
 
     try:
         # 買っているフラッグ
@@ -145,9 +145,9 @@ def ProcessNASDAQ(data):
 
         # 利益率
         df_trade['Earn'] = 0
-        # df_trade.loc[df_trade['SelledFlg'] == 1, 'Earn'] = (df_trade['Adj Close'] / df_trade['Adj Close'].shift(1) - 1) * 100
+        # df_trade.loc[df_trade['SelledFlg'] == 1, 'Earn'] = (df_trade['Close'] / df_trade['Close'].shift(1) - 1) * 100
         df_trade.loc[df_trade['SelledFlg'] == 1,
-                     'Earn'] = df_trade['Adj Close'] / df_trade['Adj Close'].shift(1)
+                     'Earn'] = df_trade['Close'] / df_trade['Close'].shift(1)
 
         # 元のBuyingFlgとSelledFlgをすべて0にする
         df[['BuyingFlg', 'SelledFlg']] = 0
@@ -173,7 +173,7 @@ def ProcessNASDAQ(data):
         df = df.fillna(0)
 
         # 買い値
-        df.loc[df['BuyingFlg'] == 1, 'BuyPrice'] = df['Adj Close']
+        df.loc[df['BuyingFlg'] == 1, 'BuyPrice'] = df['Close']
         # 0の箇所を前の値で埋める
         df = df.fillna(method='pad')
 
@@ -255,11 +255,11 @@ def PlotImage():
     # テーブル列の整形
     df_table['Performance'] = (
         # 前日の値と比較した列を作成
-        (df_table['Adj Close'] / df_table['Adj Close'].shift(1) - 1) * 100).round(2)
+        (df_table['Close'] / df_table['Close'].shift(1) - 1) * 100).round(2)
     df_table['U/D'] = df_table['U/D'].round(2)  # 少数第二位までを表示する
-    df_table['Adj Close'] = df_table['Adj Close'].round(2)  # 少数第二位までを表示する
+    df_table['Close'] = df_table['Close'].round(2)  # 少数第二位までを表示する
     df_table['Volume'] = df_table['Volume'].map('{:.2e}'.format)  # 出来高列を指数表記する
-    df_table = df_table[['Date', 'Adj Close',
+    df_table = df_table[['Date', 'Close',
                          'Performance', 'Volume', 'U/D', 'Total']][-10:]
     df_table = df_table.sort_values('Date', ascending=False)
 
@@ -330,7 +330,7 @@ def PlotImage():
     # 画像にテキストを挿入するためのImageDrawオブジェクトを作成
     draw = ImageDraw.Draw(image)
     # テキストを挿入する位置と内容を指定
-    text = "Date          Adj Close  Performance  Volume         U/D            Total"
+    text = "Date              Close  Performance  Volume         U/D            Total"
     position = (180, 80)  # テキストを挿入する位置 (x, y)
     # テキストのフォントとサイズを指定
     font_size = 32
