@@ -37,6 +37,7 @@ def NasdaqHistDownload():
     data = yf.download("^IXIC", period="max")
     logger.info(f"Donwload NASDAQ HistData (NasdaqHistDownload)\n {
                 os.listdir('/tmp')}")
+    data.columns = data.columns.droplevel(1)
     return data
 
 
