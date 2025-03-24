@@ -7,13 +7,14 @@ authors = [
 ]
 dependencies = [
     "pandas>=2.2.3",
-    "yfinance>=0.2.43",
+    "yfinance>=0.2.54",
     "matplotlib>=3.9.2",
     "mplfinance>=0.12.10b0",
     "seaborn>=0.13.2",
     "python-dotenv>=1.0.1",
+    "isort>=5.13.2",
+    "logrelay>=0.2.0",
 ]
-
 readme = "README.md"
 requires-python = ">= 3.8"
 
