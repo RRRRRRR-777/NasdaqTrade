@@ -391,12 +391,36 @@ def LineNotify():
 
     # APIのURLとトークン
     load_dotenv(verbose=True)
-    LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"
-    LINE_NOTIFY_TOKEN = os.getenv('token')
+    LINE_MESSAGEING_API = "https://api.line.me/v2/bot/message/push"
+    LINE_MESSAGEING_TOKEN = os.getenv('LINE_MESSAGEING_TOKEN')
+    LINE_USER_ID = os.getenv('LINE_USER_ID')
     # メッセージを送信
-    headers = {"Authorization": "Bearer " + LINE_NOTIFY_TOKEN}
-    send_data = {"message": message}
-    requests.post(LINE_NOTIFY_API, headers=headers,
-                  data=send_data, files=image)
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_MESSAGEING_TOKEN}",
+    }
+    data = {
+        "to": LINE_USER_ID,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
 
-    print(f"Send Line Message (LineNotify)\n{message}")
+    # {
+    #     "type": "image",
+    #     "originalContentUrl": f"https://your-server.com/path/to/{os.path.basename(image_dir)}",
+    #     "previewImageUrl": f"https://your-server.com/path/to/{os.path.basename(image_dir)}"
+    # }
+
+    try:
+        response = requests.post(
+            LINE_MESSAGEING_API, headers=headers, json=data)
+        response.raise_for_status()  # HTTPエラーがある場合は例外を発生
+        print(f"Send Line Message (LineNotify)\n{message}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        return {"error": str(e)}
