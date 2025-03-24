@@ -411,20 +411,44 @@ def LineNotify():
     today_sell = today_df['SelledFlg']
 
     if today_buy == 1:
-        message = f'\n{today}\n!!!!! BUY NASDAQ !!!!!'
+        message = f'{today}\n!!!!! BUY NASDAQ !!!!!'
     elif today_sell == 1:
-        message = f'\n{today}\n?????? SELL NASDAQ ??????'
+        message = f'{today}\n?????? SELL NASDAQ ??????'
     else:
-        message = f'\n{today}\nNo Trade'
+        message = f'{today}\nNo Trade'
 
     # APIのURLとトークン
     load_dotenv(verbose=True)
-    LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"
-    LINE_NOTIFY_TOKEN = os.getenv('token')
-    # メッセージを送信
-    headers = {"Authorization": "Bearer " + LINE_NOTIFY_TOKEN}
-    send_data = {"message": message}
-    requests.post(LINE_NOTIFY_API, headers=headers,
-                  data=send_data, files=image)
+    LINE_MESSAGEING_API = "https://api.line.me/v2/bot/message/push"
+    LINE_MESSAGEING_TOKEN = os.getenv('LINE_MESSAGEING_TOKEN')
+    LINE_USER_ID = os.getenv('LINE_USER_ID')
 
-    logger.info(f"Send Line Message (LineNotify)\n{message}")
+    # メッセージを送信
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_MESSAGEING_TOKEN}",
+    }
+    data = {
+        "to": LINE_USER_ID,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+    # {
+    #     "type": "image",
+    #     "originalContentUrl": f"https://your-server.com/path/to/{os.path.basename(image_dir)}",
+    #     "previewImageUrl": f"https://your-server.com/path/to/{os.path.basename(image_dir)}"
+    # }
+
+    try:
+        response = requests.post(
+            LINE_MESSAGEING_API, headers=headers, json=data)
+        response.raise_for_status()  # HTTPエラーがある場合は例外を発生
+        logger.info(f"Send Line Message (LineNotify)\n{message}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        return {"error": str(e)}
