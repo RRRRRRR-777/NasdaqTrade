@@ -43,6 +43,7 @@ NASDAQのヒストリカルデータをダウンロード
 
 
 def NasdaqHistDownload():
+    print("Start downloading NASDAQ historical data.")
     data = yf.download("^IXIC", period="max")
     logger.info(f"Donwload NASDAQ HistData (NasdaqHistDownload)\n {
                 os.listdir('/tmp')}")
@@ -58,7 +59,10 @@ CSVデータに情報を加える
 def ProcessNASDAQ(data):
     # 入力CSV
     df = pd.DataFrame(data).reset_index()
-
+    # マルチインデックスをシングルインデックスに変換
+    df.columns = df.columns.droplevel(1)
+    # Date列を日付部分だけに変換
+    df["Date"] = pd.to_datetime(df["Date"]).dt.date
     # 追加する列
     # 10日移動平均線
     df['SMA10'] = df['Close'].rolling(10).mean()
@@ -190,11 +194,16 @@ def ProcessNASDAQ(data):
         df = df.fillna(0)
 
     # 取引履歴がない場合Empty DataFrameエラーが発生するのでその場合は2つの列を追加する
-    except:
+    except:  # noqa: E722
         df[['Earn', 'TotalEarn']] = float(0)
 
-    # 保存ディレクトリの削除
-    shutil.rmtree(r"./tmp")
+    # 保存ディレクトリが存在するときのみ削除する
+    try:
+        nasdaq_dir = glob.glob(
+            os.getcwd()+'/tmp/NASDAQData*', recursive=True)[0]
+        shutil.rmtree(nasdaq_dir)
+    except:  # noqa: E722
+        print("保存ディレクトが存在しないので削除しませんでした。")
     # ディレクトリの作成（既に存在する場合はエラーを避ける）
     today = datetime.datetime.today().strftime("%Y%m%d")
     dir_path = f"./tmp/NASDAQData{today}"
