@@ -25,3 +25,5 @@ if __name__ == "__main__":
         line_relay.send_message("NasdaqTradeでエラーが発生しました")
         line_relay.send_message(f"エラーが発生しました\nNot Exitst ^IXIC.csv: {str(e)}")
         line_relay.send_message(f"トレースバック: {traceback.format_exc()}")
+        print(
+            f"エラーが発生しました\nNot Exitst ^IXIC.csv: {str(e)}\nトレースバック: {traceback.format_exc()}")
