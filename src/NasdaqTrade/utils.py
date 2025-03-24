@@ -420,7 +420,7 @@ def LineNotify():
     # APIのURLとトークン
     load_dotenv(verbose=True)
     LINE_MESSAGEING_API = "https://api.line.me/v2/bot/message/push"
-    LINE_MESSAGEING_TOKEN = os.getenv('LINE_MESSAGEING_TOKEN')
+    LINE_MESSAGEING_TOKEN = os.getenv('LINE_MESSAGEING_NASDAQ_TRADE_TOKEN')
     LINE_USER_ID = os.getenv('LINE_USER_ID')
 
     # メッセージを送信
