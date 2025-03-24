@@ -3,6 +3,7 @@ import glob
 import json
 import os
 import shutil
+import traceback
 from logging import config, getLogger
 
 import matplotlib.pyplot as plt
@@ -13,6 +14,7 @@ import requests
 import seaborn as sns
 import yfinance as yf
 from dotenv import load_dotenv
+from logrelay.line_relay import LineRelay
 from PIL import Image, ImageDraw, ImageFont
 
 """
@@ -26,6 +28,13 @@ with open('/tmp/log_config.json', 'r') as f:
     log_conf = json.load(f)
 config.dictConfig(log_conf)
 logger = getLogger(__name__)
+
+# LogRelayの初期化
+load_dotenv()
+line_relay = LineRelay(
+    line_access_token=os.getenv("LINE_ACCESS_TOKEN"),
+    user_id=os.getenv("USER_ID"),
+)
 
 
 """
@@ -372,6 +381,9 @@ def LineNotify():
             os.getcwd(), "tmp", "NASDAQData*"))[0], "^IXIC.csv")
     except Exception as e:
         logger.error(f"Not Exitst ^IXIC.csv \n{e}")
+        line_relay.send_message("NasdaqTradeでエラーが発生しました")
+        line_relay.send_message(f"エラーが発生しました\nNot Exitst ^IXIC.csv: {str(e)}")
+        line_relay.send_message(f"トレースバック: {traceback.format_exc()}")
     df = pd.read_csv(nasdaq_csv_path)
     # 入力画像
     try:
@@ -379,6 +391,9 @@ def LineNotify():
             os.getcwd(), "tmp", "NASDAQData*", "^IXIC.png"))[0]
     except Exception as e:
         logger.error(f"Not Exitst ^IXIC.png \n{e}")
+        line_relay.send_message("NasdaqTradeでエラーが発生しました")
+        line_relay.send_message(f"エラーが発生しました\nNot Exitst ^IXIC.csv: {str(e)}")
+        line_relay.send_message(f"トレースバック: {traceback.format_exc()}")
     image = {'imageFile': open(image_dir, 'rb')}
     # 最新日の買いフラグと売りフラグを変数に設定
     today_df = df.iloc[-1][['Date', 'BuyingFlg', 'SelledFlg']]
