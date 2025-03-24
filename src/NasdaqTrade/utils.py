@@ -32,8 +32,8 @@ logger = getLogger(__name__)
 # LogRelayの初期化
 load_dotenv()
 line_relay = LineRelay(
-    line_access_token=os.getenv("LINE_ACCESS_TOKEN"),
-    user_id=os.getenv("USER_ID"),
+    line_access_token=os.getenv("LINE_MESSAGEING_LOG_RELAY_TOKEN"),
+    user_id=os.getenv("LINE_USER_ID"),
 )
 
 
